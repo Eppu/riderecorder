@@ -19,6 +19,17 @@ export default function App() {
     },
   ]);
 
+  const [mapCoordniates, setMapCoordinates] = useState([
+    {
+      latitude: 48.8587741,
+      longitude: 2.2069771,
+    },
+    {
+      latitude: 48.8323785,
+      longitude: 2.3361663,
+    },
+  ]);
+
   const center = {
     // calculate the center of the coordinates array
     latitude:
@@ -42,6 +53,11 @@ export default function App() {
     })();
   }, []);
 
+  const onRegionChange = (region) => {
+    const { latitude, longitude } = region;
+    setMapCoordinates([{ latitude, longitude }]);
+  };
+
   return (
     <View style={styles.container}>
       {/* Display the map and a card on top of it on the bottom edge. */}
@@ -53,6 +69,7 @@ export default function App() {
           latitudeDelta: 0.2,
           longitudeDelta: 0.2,
         }}
+        onRegionChange={onRegionChange}
       >
         {coordinates.map((coordinate, index) => (
           <Marker
@@ -65,7 +82,8 @@ export default function App() {
 
       <View style={styles.card}>
         <Text>Card</Text>
-        <Text>{JSON.stringify(location)}</Text>
+        {/* <Text>{JSON.stringify(location)}</Text> */}
+        <Text>{JSON.stringify(mapCoordniates)}</Text>
       </View>
     </View>
   );
