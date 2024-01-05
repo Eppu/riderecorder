@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Text, Animated } from 'react-native';
-import MapView from 'react-native-maps';
+import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, AppState } from 'react-native';
 import { Marker, MarkerAnimated } from 'react-native-maps';
+import { StatusBar } from 'expo-status-bar';
+import * as TaskManager from 'expo-task-manager';
+
+const LOCATION_DISTANCE_THRESHOLD = 3; // meters
+const LOCATION_TRACKING = 'location-tracking';
 
 export default function App() {
   const [location, setLocation] = useState(null);
@@ -19,16 +24,35 @@ export default function App() {
     },
   ]);
 
-  const [mapCoordniates, setMapCoordinates] = useState([
-    {
-      latitude: 48.8587741,
-      longitude: 2.2069771,
-    },
-    {
-      latitude: 48.8323785,
-      longitude: 2.3361663,
-    },
-  ]);
+  // const [mapCoordniates, setMapCoordinates] = useState([
+  //   {
+  //     latitude: 48.8587741,
+  //     longitude: 2.2069771,
+  //   },
+  //   {
+  //     latitude: 48.8323785,
+  //     longitude: 2.3361663,
+  //   },
+  // ]);
+
+  // store the user's locationso we can draw a path on the map
+  const [userLocations, setUserLocations] = useState([]);
+
+  TaskManager.defineTask(LOCATION_TRACKING, async ({ data, error }) => {
+    if (error) {
+      console.error(error);
+      return;
+    }
+    if (data) {
+      const { locations } = data;
+      // console.log('locations', locations[0]);
+      // do something with the locations captured in the background
+      setLocation(locations[0]);
+      // push the lat and long to userLocations
+      const { latitude, longitude } = locations[0].coords;
+      setUserLocations((prev) => [...prev, { latitude, longitude }]);
+    }
+  });
 
   const center = {
     // calculate the center of the coordinates array
@@ -42,20 +66,34 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+      let { status } = await Location.requestBackgroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
         return;
       }
-
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
+
+      // Start tracking the user's location in the background.
+      await Location.startLocationUpdatesAsync(LOCATION_TRACKING, {
+        accuracy: Location.Accuracy.Highest,
+        distanceInterval: LOCATION_DISTANCE_THRESHOLD,
+        showsBackgroundLocationIndicator: true,
+      });
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(
+        LOCATION_TRACKING
+      );
+      console.log('tracking started?', hasStarted);
     })();
+
+    return () => {
+      Location.stopLocationUpdatesAsync(LOCATION_TRACKING);
+    };
   }, []);
 
   const onRegionChange = (region) => {
     const { latitude, longitude } = region;
-    setMapCoordinates([{ latitude, longitude }]);
+    console.log('region changed', region);
   };
 
   return (
@@ -66,25 +104,38 @@ export default function App() {
         initialRegion={{
           latitude: center.latitude,
           longitude: center.longitude,
-          latitudeDelta: 0.2,
-          longitudeDelta: 0.2,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
         }}
-        onRegionChange={onRegionChange}
+        // onRegionChange={onRegionChange}
+        // onRegionChangeComplete={onRegionChange}
+        region={location ? location.coords : null}
       >
-        {coordinates.map((coordinate, index) => (
+        <Polyline
+          coordinates={userLocations}
+          strokeColor="#ffb703"
+          strokeWidth={6}
+        />
+        {/* {coordinates.map((coordinate, index) => (
           <Marker
             key={`coordinate_${index}`}
             coordinate={coordinate}
             title={`coordinate_${index}`}
           />
-        ))}
+        ))} */}
       </MapView>
 
       <View style={styles.card}>
-        <Text>Card</Text>
         {/* <Text>{JSON.stringify(location)}</Text> */}
-        <Text>{JSON.stringify(mapCoordniates)}</Text>
+        {/* <Text>{JSON.stringify(mapCoordniates)}</Text> */}
+        <Text>{JSON.stringify(location)}</Text>
       </View>
+      <StatusBar
+        hidden={false}
+        animated={true}
+        hideTransitionAnimation="slide"
+        style="dark"
+      />
     </View>
   );
 }
