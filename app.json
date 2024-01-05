@@ -15,7 +15,8 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
+        "UIBackgroundModes": ["location", "fetch"]
       },
       "bundleIdentifier": "com.anonymous.RideRecorder"
     },
