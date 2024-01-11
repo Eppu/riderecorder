@@ -51,6 +51,7 @@ export default function App() {
   };
 
   const startLocationTracking = async () => {
+    console.log('starting location tracking');
     await Location.startLocationUpdatesAsync(LOCATION_TRACKING, {
       accuracy: Location.Accuracy.Highest,
       distanceInterval: LOCATION_DISTANCE_THRESHOLD,
@@ -65,6 +66,7 @@ export default function App() {
   };
 
   const stopLocationTracking = async () => {
+    console.log('stopping location tracking');
     await Location.stopLocationUpdatesAsync(LOCATION_TRACKING);
 
     // Calculate the center point of all the locations and set the map's region
@@ -91,8 +93,8 @@ export default function App() {
     // set the map's region to the center of the path we took
     mapRef.current.animateToRegion({
       ...center,
-      latitudeDelta: Math.max(...latDeltas) * 2.5,
-      longitudeDelta: Math.max(...longDeltas) * 2.5,
+      latitudeDelta: Math.max(...latDeltas) * 2.7,
+      longitudeDelta: Math.max(...longDeltas) * 2.7,
     });
 
     setIsTracking(false);
@@ -110,7 +112,13 @@ export default function App() {
     })();
 
     return () => {
+      console.log('unmounting');
       Location.stopLocationUpdatesAsync(LOCATION_TRACKING);
+      console.log('location updates stopped');
+      TaskManager.unregisterAllTasksAsync();
+      console.log('tasks unregistered');
+      setIsTracking(false);
+      console.log('tracking stopped');
     };
   }, []);
 
@@ -130,7 +138,7 @@ export default function App() {
       setLocation(locations[0]);
       // push the lat and long to userLocations
       const { latitude, longitude } = locations[0].coords;
-      // TODO: Figure out a more memory efficient way to store the user's location history
+      // TODO: Implement out a more memory efficient way to store the user's location history
       setUserLocations((prev) => [...prev, { latitude, longitude }]);
     }
   });
@@ -141,15 +149,19 @@ export default function App() {
       <MapView
         ref={mapRef}
         style={styles.map}
+        showsUserLocation={true}
+        followsUserLocation={isTracking ? true : false}
         initialRegion={{
           latitude: center.latitude,
           longitude: center.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
+        // userLocationCalloutEnabled={true}
+        showsMyLocationButton={true}
         // onRegionChange={onRegionChange}
         // onRegionChangeComplete={onRegionChange}
-        region={location ? location.coords : null}
+        // region={location ? location.coords : null}
       >
         <Polyline
           coordinates={userLocations}
@@ -207,7 +219,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: '100%',
-    height: '100%',
+    height: '70%',
   },
 });
 
