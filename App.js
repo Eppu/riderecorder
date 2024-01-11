@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, Animated, Button } from 'react-native';
+import {
+  Text,
+  Animated,
+  Button,
+  StyleSheet,
+  View,
+  AppState,
+} from 'react-native';
 import MapView, { Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { StyleSheet, View, AppState } from 'react-native';
 import { Marker, MarkerAnimated } from 'react-native-maps';
 import { StatusBar } from 'expo-status-bar';
 import * as TaskManager from 'expo-task-manager';
@@ -24,17 +30,6 @@ export default function App() {
       longitude: 2.3361663,
     },
   ]);
-
-  // const [mapCoordniates, setMapCoordinates] = useState([
-  //   {
-  //     latitude: 48.8587741,
-  //     longitude: 2.2069771,
-  //   },
-  //   {
-  //     latitude: 48.8323785,
-  //     longitude: 2.3361663,
-  //   },
-  // ]);
 
   // store the user's locationso we can draw a path on the map
   const [userLocations, setUserLocations] = useState([]);
@@ -123,7 +118,6 @@ export default function App() {
   }, []);
 
   const onRegionChange = (region) => {
-    const { latitude, longitude } = region;
     console.log('region changed', region);
   };
 
@@ -157,8 +151,7 @@ export default function App() {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
-        // userLocationCalloutEnabled={true}
-        showsMyLocationButton={true}
+        mapPadding={{ top: 0, right: 0, bottom: 210, left: 0 }} // for now
         // onRegionChange={onRegionChange}
         // onRegionChangeComplete={onRegionChange}
         // region={location ? location.coords : null}
@@ -219,7 +212,8 @@ const styles = StyleSheet.create({
   },
   map: {
     width: '100%',
-    height: '70%',
+    height: '100%',
+    zIndex: -1,
   },
 });
 
