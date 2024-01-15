@@ -93,6 +93,17 @@ export default function App() {
     });
 
     setIsTracking(false);
+
+    console.log("Stopped tracking. User's locations: ", userLocations);
+    // The average speed of the user's journey
+    const averageSpeed =
+      userLocations.reduce((prev, curr) => prev + curr.speed, 0) /
+      userLocations.length;
+    console.log('Average speed: ', averageSpeed);
+    console.log(
+      'average speed in km/h: ',
+      metersPerSecondToKilometersPerHour(averageSpeed)
+    );
   };
 
   useEffect(() => {
@@ -121,6 +132,10 @@ export default function App() {
     console.log('region changed', region);
   };
 
+  const metersPerSecondToKilometersPerHour = (metersPerSecond) => {
+    return Math.round(metersPerSecond * 3.6);
+  };
+
   TaskManager.defineTask(LOCATION_TRACKING, async ({ data, error }) => {
     if (error) {
       console.error(error);
@@ -131,9 +146,9 @@ export default function App() {
       // do something with the locations captured in the background
       setLocation(locations[0]);
       // push the lat and long to userLocations
-      const { latitude, longitude } = locations[0].coords;
+      const { latitude, longitude, speed } = locations[0].coords;
       // TODO: Implement out a more memory efficient way to store the user's location history
-      setUserLocations((prev) => [...prev, { latitude, longitude }]);
+      setUserLocations((prev) => [...prev, { latitude, longitude, speed }]);
     }
   });
 
@@ -171,6 +186,12 @@ export default function App() {
       </MapView>
 
       <View style={styles.card}>
+        {location && location?.coords && (
+          <Text>
+            Current speed:{' '}
+            {metersPerSecondToKilometersPerHour(location.coords.speed)} km/h
+          </Text>
+        )}
         <Text>{JSON.stringify(location)}</Text>
         <Button
           title="Start Tracking"
