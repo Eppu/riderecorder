@@ -12,8 +12,8 @@ import React, {
   useMemo,
 } from 'react';
 import * as TaskManager from 'expo-task-manager';
-
 import * as Location from 'expo-location';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 const LOCATION_DISTANCE_THRESHOLD = 3; // meters
 const LOCATION_TRACKING = 'location-tracking';
@@ -22,12 +22,14 @@ import {
   Text,
   Animated,
   Button,
+  Pressable,
   StyleSheet,
   View,
   AppState,
 } from 'react-native';
 
 export default function MapScreen({ navigation }) {
+  const [userLocation, setUserLocation] = useState(null);
   const [location, setLocation] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -132,22 +134,22 @@ export default function MapScreen({ navigation }) {
   };
 
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestBackgroundPermissionsAsync();
-      let { status: foregroundStatus } =
-        await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
-      }
-      if (foregroundStatus !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
-      }
-      let location = await Location.getCurrentPositionAsync({});
-      console.log('got location! ', location);
-      setLocation(location);
-    })();
+    console.log('useEffect called!'),
+      (async () => {
+        let { status } = await Location.requestBackgroundPermissionsAsync();
+        let { status: foregroundStatus } =
+          await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          return;
+        }
+        if (foregroundStatus !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          return;
+        }
+        updateUserLocation();
+        goToUserLocation();
+      })();
 
     return () => {
       console.log('unmounting');
@@ -164,6 +166,25 @@ export default function MapScreen({ navigation }) {
     console.log('region changed', region);
   };
 
+  const updateUserLocation = async () => {
+    console.log("Getting user's location...");
+    let location = await Location.getCurrentPositionAsync({});
+    setLocation(location);
+    console.log('User location updated!', location);
+  };
+
+  const goToUserLocation = async () => {
+    await updateUserLocation();
+
+    mapRef.current.animateCamera({
+      center: {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      },
+      altitude: 2000,
+    });
+  };
+
   const metersPerSecondToKilometersPerHour = (metersPerSecond) => {
     return Math.round(metersPerSecond * 3.6);
   };
@@ -176,7 +197,7 @@ export default function MapScreen({ navigation }) {
     if (data) {
       const { locations } = data;
       // do something with the locations captured in the background
-      setLocation(locations[0]);
+      // setLocation(locations[0]); // Don't think this is actually needed for anything?
       // push the lat and long to userLocations
       const { latitude, longitude, speed } = locations[0].coords;
       // TODO: Implement out a more memory efficient way to store the user's location history
@@ -188,36 +209,53 @@ export default function MapScreen({ navigation }) {
     <GestureHandlerRootView>
       <View style={styles.container}>
         {/* Display the map and a card on top of it on the bottom edge. */}
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          showsUserLocation={true}
-          followsUserLocation={isTracking ? true : false}
-          showsMyLocationButton={true}
-          initialRegion={{
-            latitude: location ? location.coords.latitude : 48.8587741,
-            longitude: location ? location.coords.longitude : 2.2069771,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-          mapPadding={{ top: 0, right: 0, bottom: 50, left: 0 }} // for now
-          // onRegionChange={onRegionChange}
-          // onRegionChangeComplete={onRegionChange}
-          // region={location ? location.coords : null}
-        >
-          <Polyline
-            coordinates={userLocations}
-            strokeColor="#ffb703"
-            strokeWidth={6}
-          />
-          {/* {coordinates.map((coordinate, index) => (
+        {location && location?.coords && (
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            showsUserLocation={true}
+            followsUserLocation={isTracking ? true : false}
+            showsMyLocationButton={true}
+            initialRegion={{
+              latitude: location ? location.coords.latitude : 48.8587741,
+              longitude: location ? location.coords.longitude : 2.2069771,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+            mapPadding={{ top: 0, right: 0, bottom: 50, left: 0 }} // for now
+            // onRegionChange={onRegionChange}
+            // onRegionChangeComplete={onRegionChange}
+            // region={location ? location.coords : null}
+          >
+            <Polyline
+              coordinates={userLocations}
+              strokeColor="#ffb703"
+              strokeWidth={6}
+            />
+            {/* {coordinates.map((coordinate, index) => (
           <Marker
           key={`coordinate_${index}`}
           coordinate={coordinate}
           title={`coordinate_${index}`}
           />
           ))} */}
-        </MapView>
+          </MapView>
+        )}
+        <View style={styles.buttonContainer}>
+          <Pressable
+            style={styles.centerPositionButton}
+            title="Center on Me"
+            onPress={goToUserLocation}
+          >
+            <FontAwesome6
+              name={'location-arrow'}
+              size={24}
+              color={'gray'}
+              solid
+            />
+          </Pressable>
+        </View>
+
         <BottomSheet
           snapPoints={snapPoints}
           ref={bottomSheetRef}
@@ -259,6 +297,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     // justifyContent: 'center', // for debugging
+  },
+  buttonContainer: {
+    position: 'absolute',
+    top: 70,
+    left: 15,
+    backgroundColor: 'transparent',
+    zIndex: 100,
+    display: 'flex',
+  },
+  centerPositionButton: {
+    backgroundColor: 'white',
+    width: 50,
+    height: 50,
+    padding: 10,
+    borderRadius: 100,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   card: {
     position: 'absolute',
