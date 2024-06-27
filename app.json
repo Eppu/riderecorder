@@ -11,18 +11,13 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to track your motorcycle rides.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to track your motorcycle rides even when the app is in the background.",
-        "UIBackgroundModes": [
-          "location",
-          "fetch"
-        ]
+        "UIBackgroundModes": ["location", "fetch"]
       },
       "bundleIdentifier": "com.anonymous.RideRecorder"
     },
